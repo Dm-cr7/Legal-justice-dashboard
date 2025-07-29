@@ -1,77 +1,78 @@
-// backend/server.js
-
-import express from "express"
-import mongoose from "mongoose"
-import cors from "cors"
-import cookieParser from "cookie-parser"
-import dotenv from "dotenv"
-import path from "path"
-import { fileURLToPath } from "url"
+import express from "express";
+import path from "path";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 
 // Load environment variables
-dotenv.config()
+dotenv.config();
 
 // Create Express app
-const app = express()
+const app = express();
 
-// Fix __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ─── 1️⃣ Global Middleware ────────────────────────────────────────────────────
-
-// Parse JSON bodies
-app.use(express.json())
-
-// Parse cookies
-app.use(cookieParser())
-
-// Enable CORS for your frontend
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-)
-
-// Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")))
-
-// ─── 2️⃣ Route Imports ────────────────────────────────────────────────────────
-
-import authRoutes   from "./routes/auth.js"
-import clientRoutes from "./routes/clients.js"
-import caseRoutes   from "./routes/cases.js"       // includes file uploads via Multer
-import taskRoutes   from "./routes/taskRoutes.js"
-import reportsRoutes from "./routes/reports.js"
-import userRoutes   from "./routes/userRoutes.js"
-
-// ─── 3️⃣ Mount Routes ─────────────────────────────────────────────────────────
-
-app.use("/api/auth",    authRoutes)
-app.use("/api/clients", clientRoutes)
-app.use("/api/cases",   caseRoutes)
-app.use("/api/tasks",   taskRoutes)
-app.use("/api/reports", reportsRoutes)
-app.use("/api/users",   userRoutes)
-
-// Health check
-app.get("/", (req, res) => {
-  res.send("Legal Justice Dashboard API is running")
-})
-
-// ─── 4️⃣ Connect to MongoDB & Start Server ────────────────────────────────────
-
+// Connect to MongoDB Atlas
 mongoose
   .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true, // no longer required in newer drivers
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   })
-  .then(() => {
-    app.listen(5000, () => {
-      console.log("✅ Server running at http://localhost:5000")
-    })
-  })
+  .then(() => console.log("MongoDB connected"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err)
-  })
-// ─── 5️⃣ Serve Frontend in Production ─────────────────────────────────────────
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
+
+// -------- SERVE STATIC ASSETS --------
+// Adjust these paths if you use CRA (build/) or raw public/ during dev
+const clientBuildPath = path.join(__dirname, "frontend", "dist");
+const clientPublicPath = path.join(__dirname, "frontend", "public");
+
+// First, serve anything from the build output (after `npm run build`)
+app.use(express.static(clientBuildPath));
+
+// Fallback to serving raw public/ files if not present in dist (optional)
+app.use(express.static(clientPublicPath));
+
+// -------- API ROUTES --------
+import authRoutes from "./routes/auth.js";
+import caseRoutes from "./routes/cases.js";
+import clientRoutes from "./routes/clients.js";
+import taskRoutes from "./routes/taskRoutes.js";
+import reportRoutes from "./routes/reports.js";
+import userRoutes from "./routes/userRoutes.js";
+import { protect } from "./middleware/auth.js";
+
+app.use("/api/auth", authRoutes);
+app.use("/api/cases", protect, caseRoutes);
+app.use("/api/clients", protect, clientRoutes);
+app.use("/api/tasks", protect, taskRoutes);
+app.use("/api/reports", protect, reportRoutes);
+app.use("/api/users", protect, userRoutes);
+
+// -------- CLIENT-SIDE ROUTING FALLBACK --------
+app.get("/*", (req, res) => {
+  // Try sending index.html from your build first
+  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
+    if (err) {
+      // If it's not there (e.g. during local dev), fall back to public/index.html
+      res.sendFile(path.join(clientPublicPath, "index.html"));
+    }
+  });
+});
+
+// -------- ERROR HANDLING --------
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || "Server Error",
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

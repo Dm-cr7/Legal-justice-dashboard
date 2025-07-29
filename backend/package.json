@@ -1,24 +1,18 @@
 {
-  "name": "backend",
+  "name": "legal-justice-backend",
   "version": "1.0.0",
-  "type": "module",
+  "type": "module",              
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
+    "start": "node server.js"   
   },
   "dependencies": {
-    "axios": "^1.11.0",
-    "bcrypt": "^6.0.0",
-    "cookie-parser": "^1.4.7",
+    "express": "^4.18.2",
+    "mongoose": "^7.6.1",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.526.0",
-    "mongoose": "^8.16.5",
-    "multer": "^2.0.2",
-    "react-hook-form": "^7.61.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
+    "multer": "^1.4.5-lts.1"
   }
 }
