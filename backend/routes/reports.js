@@ -1,96 +1,105 @@
+// backend/routes/reports.js
+
 import express from "express";
-import mongoose from "mongoose";
-import Case from "../models/Case.js";
-import Client from "../models/Client.js"; // Assuming you have a Client model
-import Task from "../models/Task.js";
-import { verifyUser } from "../middleware/auth.js";
+import Report from "../models/Report.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// GET /api/reports/summary – returns key metrics for StatCards
-router.get("/summary", verifyUser, async (req, res) => {
+/**
+ * @route   GET /api/reports
+ * @desc    Get all reports for the logged‑in user
+ * @access  Private
+ */
+router.get("/", protect, async (req, res) => {
   try {
-    const { userId, role } = req;
-    
-    // Base query for role-based filtering
-    const query = role === 'advocate' ? { createdBy: userId } : {};
-    const clientQuery = role === 'advocate' ? { associatedAdvocate: userId } : {}; // Example for clients
-
-    const [totalCases, totalClients, openTasks, overdueTasks] = await Promise.all([
-      Case.countDocuments(query),
-      Client.countDocuments(clientQuery),
-      Task.countDocuments({ ...query, completed: false }),
-      Task.countDocuments({ ...query, completed: false, dueDate: { $lt: new Date() } }),
-    ]);
-
-    res.json({
-      totalCases,
-      totalClients,
-      openTasks,
-      overdueTasks,
-    });
-
+    const reports = await Report.find({ user: req.user._id });
+    res.json(reports);
   } catch (err) {
-    console.error("Reports summary error:", err);
-    res.status(500).json({ error: "Failed to generate summary report" });
+    console.error("Error fetching reports:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-
-// GET /api/reports/charts – returns data formatted for charts
-router.get("/charts", verifyUser, async (req, res) => {
-    try {
-        const { userId, role } = req;
-        const matchQuery = role === 'advocate' ? { createdBy: new mongoose.Types.ObjectId(userId) } : {};
-
-        // 1. Data for Pie Chart (Case Status Distribution)
-        const caseStatusData = await Case.aggregate([
-            { $match: matchQuery },
-            { $group: { _id: "$status", value: { $sum: 1 } } },
-            { $project: { name: "$_id", value: 1, _id: 0 } }
-        ]);
-
-        // 2. Data for Bar Chart (Monthly New vs. Closed Cases)
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-        const monthlyCaseData = await Case.aggregate([
-            { $match: { ...matchQuery, createdAt: { $gte: sixMonthsAgo } } },
-            {
-                $group: {
-                    _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
-                    newCases: { $sum: 1 },
-                    closedCases: {
-                        $sum: { $cond: [{ $eq: ["$status", "Done"] }, 1, 0] }
-                    }
-                }
-            },
-            { $sort: { "_id.year": 1, "_id.month": 1 } },
-            { 
-                $project: {
-                    name: { 
-                        $let: {
-                            vars: { monthsInYear: [ "Error", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ] },
-                            in: { $arrayElemAt: [ "$$monthsInYear", "$_id.month" ] }
-                        }
-                    },
-                    newCases: 1,
-                    closedCases: 1,
-                    _id: 0
-                }
-            }
-        ]);
-
-        res.json({
-            caseStatusData,
-            monthlyCaseData
-        });
-
-    } catch (err) {
-        console.error("Chart data error:", err);
-        res.status(500).json({ error: "Failed to generate chart data" });
-    }
+/**
+ * @route   POST /api/reports
+ * @desc    Create a new report
+ * @access  Private
+ */
+router.post("/", protect, async (req, res) => {
+  const { title, description, caseId } = req.body;
+  try {
+    const report = new Report({
+      title,
+      description,
+      case: caseId,
+      user: req.user._id,
+      createdAt: Date.now(),
+    });
+    await report.save();
+    res.status(201).json(report);
+  } catch (err) {
+    console.error("Error creating report:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
+/**
+ * @route   GET /api/reports/:id
+ * @desc    Get a single report by ID
+ * @access  Private
+ */
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report || report.user.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+    res.json(report);
+  } catch (err) {
+    console.error("Error fetching report:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
+ * @route   PUT /api/reports/:id
+ * @desc    Update a report
+ * @access  Private
+ */
+router.put("/:id", protect, async (req, res) => {
+  try {
+    let report = await Report.findById(req.params.id);
+    if (!report || report.user.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+    report.title = req.body.title || report.title;
+    report.description = req.body.description || report.description;
+    await report.save();
+    res.json(report);
+  } catch (err) {
+    console.error("Error updating report:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
+ * @route   DELETE /api/reports/:id
+ * @desc    Delete a report
+ * @access  Private
+ */
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report || report.user.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+    await report.remove();
+    res.json({ message: "Report removed" });
+  } catch (err) {
+    console.error("Error deleting report:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 export default router;
