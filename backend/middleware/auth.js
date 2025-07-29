@@ -1,25 +1,38 @@
-import jwt from "jsonwebtoken";
+// backend/middleware/auth.js
 
-export const verifyUser = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+/**
+ * Middleware to protect routes — verifies JWT and attaches user to req.
+ */
+export const protect = async (req, res, next) => {
+  let token;
+
+  // Check for Bearer token in Authorization header
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      // Extract token
+      token = req.headers.authorization.split(" ")[1];
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Fetch user (excluding password) and attach to request
+      req.user = await User.findById(decoded.id).select("-password");
+
+      return next();
+    } catch (error) {
+      console.error("Auth middleware error:", error);
+      return res.status(401).json({ message: "Not authorized, token failed" });
+    }
   }
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // --- THIS IS THE FIX ---
-    // 1. Use 'decoded.id' to match how the token was signed.
-    // 2. Use 'req.role' to match what the route handlers expect.
-    req.userId = decoded.id; 
-    req.role = decoded.role;
-    // --- END OF FIX ---
-
-    next();
-  } catch (err) {
-    // If the token is expired or invalid, clear the cookie and send an error
-    res.clearCookie("token");
-    res.status(401).json({ error: "Invalid or expired token" });
+  // No token provided
+  if (!token) {
+    return res.status(401).json({ message: "Not authorized, no token" });
   }
 };
