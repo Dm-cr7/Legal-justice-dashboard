@@ -7,25 +7,28 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 
+// Load environment variables
+dotenv.config();
+
+// Debug: ensure FRONTEND_URL is loaded
+console.log("🛠️ FRONTEND_URL:", process.env.FRONTEND_URL);
+
 // Fix __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Load environment variables
-dotenv.config();
 
 // Create Express app
 const app = express();
 
 // -------- CORS SETUP FOR /api ROUTES --------
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,    // your frontend domain
-  credentials: true,
+  origin: process.env.FRONTEND_URL,    // e.g. "https://legal-dashboard-frontend.onrender.com"
+  credentials: true,                   // allow cookies/auth headers
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 };
 app.use("/api", cors(corsOptions));
-app.options("/api/*", cors(corsOptions)); // preflight
+app.options("/api/*", cors(corsOptions));  // explicit preflight handling
 
 // -------- BODY PARSERS --------
 app.use(express.json());
@@ -40,7 +43,10 @@ import reportRoutes from "./routes/reports.js";
 import userRoutes from "./routes/userRoutes.js";
 import { protect } from "./middleware/auth.js";
 
+// Public auth endpoints
 app.use("/api/auth", authRoutes);
+
+// Protected endpoints
 app.use("/api/cases", protect, caseRoutes);
 app.use("/api/clients", protect, clientRoutes);
 app.use("/api/tasks", protect, taskRoutes);
@@ -51,10 +57,12 @@ app.use("/api/users", protect, userRoutes);
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
 app.use(express.static(clientBuildPath));
 
-// -------- SPA FALLBACK --------
+// -------- SPA FALLBACK FOR CLIENT‑SIDE ROUTING --------
 app.get("*", (req, res, next) => {
-  // If request is for API or a file, skip
-  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
+  // Skip API and asset requests
+  if (req.path.startsWith("/api") || req.path.includes(".")) {
+    return next();
+  }
   res.sendFile(path.join(clientBuildPath, "index.html"), err => {
     if (err) {
       console.error("⚠️ Failed to serve index.html:", err);
@@ -66,7 +74,9 @@ app.get("*", (req, res, next) => {
 // -------- ERROR HANDLING --------
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || "Server Error" });
+  res.status(err.status || 500).json({
+    message: err.message || "Server Error",
+  });
 });
 
 // -------- MONGODB CONNECTION & SERVER START --------
