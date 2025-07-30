@@ -26,12 +26,21 @@ export default function Login() {
     setApiError(null);
     try {
       const res = await axios.post('/api/auth/login', data, { withCredentials: true });
-      const { role } = res.data;
+
+      const { token, user } = res.data;
+      const role = user?.role;
+
       if (!role) throw new Error('No role assigned.');
+
+      // Store auth details in localStorage
+      localStorage.setItem('token', token);
       localStorage.setItem('role', role);
+
+      // Navigate based on role
       navigate(role === 'advocate' ? '/dashboard/advocate' : '/dashboard/paralegal');
     } catch (err) {
-      setApiError(err.response?.data?.error ?? err.message ?? 'Login failed. Please try again.');
+      const errorMsg = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setApiError(errorMsg);
     }
   };
 
