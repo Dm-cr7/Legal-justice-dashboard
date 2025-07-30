@@ -24,7 +24,7 @@ router.post("/register", async (req, res) => {
     user = new User({ name, email, password, role });
     await user.save();
 
-    // Sign JWT (ensure JWT_SECRET is set in your environment)
+    // Sign JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -35,7 +35,6 @@ router.post("/register", async (req, res) => {
     });
   } catch (err) {
     console.error("Registration error:", err);
-    // Expose generic message
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -47,25 +46,41 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user and include password hash
+    console.log("🔍 Login attempt for email:", email);
+
+    // Find user including the password hash
     const user = await User.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password))) {
+    console.log("🔍 User fetched from DB:", user ? { id: user._id, role: user.role } : null);
+
+    if (!user) {
+      console.warn("⚠️ No user found with that email");
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Sign JWT (ensure JWT_SECRET is set in your environment)
+    const isMatch = await user.comparePassword(password);
+    console.log("🔍 Password match result:", isMatch);
+
+    if (!isMatch) {
+      console.warn("⚠️ Password did not match for user:", email);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Sign JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
+    console.log("✅ Login successful, issuing token for:", email);
+
+    // Return token and user info
     res.json({
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
     console.error("Login error:", err);
-    // Temporarily expose the real error message for debugging:
-    return res.status(500).json({ error: err.message });
+    // Expose the error message temporarily for debugging
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -73,7 +88,6 @@ router.post("/login", async (req, res) => {
 // @desc    Get current user profile
 // @access  Private
 router.get("/me", protect, async (req, res) => {
-  // `protect` attaches `req.user`
   res.json({
     id: req.user._id,
     name: req.user.name,
