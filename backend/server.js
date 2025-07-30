@@ -7,34 +7,34 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 
-// 1) Load environment variables immediately
+// 1. Load env vars
 dotenv.config();
 
-// 2) Debug: confirm FRONTEND_URL is loaded correctly
+// 2. Debug: confirm FRONTEND_URL
 console.log("🛠️ FRONTEND_URL:", process.env.FRONTEND_URL);
 
-// 3) Fix __dirname in ES modules
+// 3. __dirname fix
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 4) Create Express app
+// 4. Create app
 const app = express();
 
-// -------- CORS SETUP FOR /api ROUTES --------
+// 5. Global CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,    // e.g. "https://legal-dashboard-frontend.onrender.com"
-  credentials: true,                   // allow cookies/auth headers
+  origin: process.env.FRONTEND_URL,    // https://legal-dashboard-frontend.onrender.com
+  credentials: true,                   // allow cookies
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 };
-app.use("/api", cors(corsOptions));
-app.options("/api/*", cors(corsOptions));  // explicit preflight handling
+app.use(cors(corsOptions));            // apply to all routes
+app.options("*", cors(corsOptions));   // handle preflight for all
 
-// -------- BODY PARSERS --------
+// 6. Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// -------- API ROUTES --------
+// 7. API routes
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
 import clientRoutes from "./routes/clients.js";
@@ -43,26 +43,20 @@ import reportRoutes from "./routes/reports.js";
 import userRoutes from "./routes/userRoutes.js";
 import { protect } from "./middleware/auth.js";
 
-// Public auth endpoints
 app.use("/api/auth", authRoutes);
-
-// Protected endpoints
 app.use("/api/cases", protect, caseRoutes);
 app.use("/api/clients", protect, clientRoutes);
 app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// -------- STATIC FRONTEND SETUP --------
+// 8. Serve static frontend
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
 app.use(express.static(clientBuildPath));
 
-// -------- SPA FALLBACK FOR CLIENT‑SIDE ROUTING --------
+// 9. SPA fallback
 app.get("*", (req, res, next) => {
-  // Skip API and asset requests
-  if (req.path.startsWith("/api") || req.path.includes(".")) {
-    return next();
-  }
+  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
   res.sendFile(path.join(clientBuildPath, "index.html"), err => {
     if (err) {
       console.error("⚠️ Failed to serve index.html:", err);
@@ -71,15 +65,13 @@ app.get("*", (req, res, next) => {
   });
 });
 
-// -------- ERROR HANDLING --------
+// 10. Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || "Server Error",
-  });
+  res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
 
-// -------- MONGODB CONNECTION & SERVER START --------
+// 11. Connect & start
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
