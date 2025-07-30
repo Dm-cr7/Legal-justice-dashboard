@@ -24,7 +24,7 @@ router.post("/register", async (req, res) => {
     user = new User({ name, email, password, role });
     await user.save();
 
-    // Sign JWT
+    // Sign JWT (ensure JWT_SECRET is set in your environment)
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -46,13 +46,13 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user || !(await user.matchPassword(password))) {
+    // Find user and include password hash
+    const user = await User.findOne({ email }).select("+password");
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Sign JWT
+    // Sign JWT (ensure JWT_SECRET is set in your environment)
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -81,4 +81,3 @@ router.get("/me", protect, async (req, res) => {
 });
 
 export default router;
-
