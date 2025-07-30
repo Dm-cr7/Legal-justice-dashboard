@@ -12,17 +12,17 @@ export async function registerUser({ name, email, password, role }) {
       body: JSON.stringify({ name, email, password, role }),
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || "Registration failed");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Registration failed");
 
-    return { success: true, message: result.message };
+    return { success: true, message: data.message };
   } catch (err) {
     console.error("Register error:", err.message);
     return { success: false, message: err.message };
   }
 }
 
-// Log in a user and persist their role
+// Log in a user and persist their token and role
 export async function loginUser({ email, password }) {
   try {
     const res = await fetch(`${API}/api/auth/login`, {
@@ -32,15 +32,18 @@ export async function loginUser({ email, password }) {
       body: JSON.stringify({ email, password }),
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || "Login failed");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Login failed");
 
-    // Store role in localStorage for frontend use
-    if (result.user?.role) {
-      localStorage.setItem("role", result.user.role);
+    const { token, user } = data;
+
+    // Store token and role in localStorage for frontend use
+    localStorage.setItem("token", token);
+    if (user?.role) {
+      localStorage.setItem("role", user.role);
     }
 
-    return { success: true, role: result.user.role, message: "" };
+    return { success: true, user };
   } catch (err) {
     console.error("Login error:", err.message);
     return { success: false, message: err.message };
@@ -63,7 +66,7 @@ export async function getCurrentUser() {
       localStorage.setItem("role", user.role);
     }
 
-    return user; // { name, email, role, etc. }
+    return user; // { id, name, email, role, etc. }
   } catch (err) {
     console.error("getCurrentUser error:", err.message);
     return null;
