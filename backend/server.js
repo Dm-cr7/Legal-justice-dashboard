@@ -19,32 +19,17 @@ const app = express();
 
 // -------- CORS SETUP FOR /api ROUTES --------
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,          // e.g. https://legal-dashboard-frontend.onrender.com
-  credentials: true,                         // allow cookies/auth headers
+  origin: process.env.FRONTEND_URL,    // your frontend domain
+  credentials: true,
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 };
-
-// Enable CORS and preflight for all /api/* routes
 app.use("/api", cors(corsOptions));
-app.options("/api/*", cors(corsOptions));     // explicit preflight handling
+app.options("/api/*", cors(corsOptions)); // preflight
 
-// -------- BODY PARSING MIDDLEWARE --------
+// -------- BODY PARSERS --------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// -------- MONGODB CONNECTION --------
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
-
-// -------- STATIC FRONTEND SETUP --------
-const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
-app.use(express.static(clientBuildPath));
 
 // -------- API ROUTES --------
 import authRoutes from "./routes/auth.js";
@@ -55,26 +40,25 @@ import reportRoutes from "./routes/reports.js";
 import userRoutes from "./routes/userRoutes.js";
 import { protect } from "./middleware/auth.js";
 
-// Public auth endpoints
 app.use("/api/auth", authRoutes);
-
-// Protected endpoints
 app.use("/api/cases", protect, caseRoutes);
 app.use("/api/clients", protect, clientRoutes);
 app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// -------- SPA FALLBACK FOR CLIENT-SIDE ROUTING --------
+// -------- STATIC FRONTEND SETUP --------
+const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
+app.use(express.static(clientBuildPath));
+
+// -------- SPA FALLBACK --------
 app.get("*", (req, res, next) => {
-  // Skip API and asset requests
-  if (req.path.startsWith("/api") || req.path.includes(".")) {
-    return next();
-  }
-  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
+  // If request is for API or a file, skip
+  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
+  res.sendFile(path.join(clientBuildPath, "index.html"), err => {
     if (err) {
-      console.error("⚠️ Failed to load index.html:", err);
-      res.status(500).send("Frontend index.html not found.");
+      console.error("⚠️ Failed to serve index.html:", err);
+      res.status(500).send("Frontend not found");
     }
   });
 });
@@ -82,13 +66,18 @@ app.get("*", (req, res, next) => {
 // -------- ERROR HANDLING --------
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || "Server Error",
-  });
+  res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
 
-// -------- START SERVER --------
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// -------- MONGODB CONNECTION & SERVER START --------
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  })
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });
