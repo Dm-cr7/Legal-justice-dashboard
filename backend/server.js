@@ -7,17 +7,17 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 
-// Load environment variables
+// 1) Load environment variables immediately
 dotenv.config();
 
-// Debug: ensure FRONTEND_URL is loaded
+// 2) Debug: confirm FRONTEND_URL is loaded correctly
 console.log("🛠️ FRONTEND_URL:", process.env.FRONTEND_URL);
 
-// Fix __dirname in ES modules
+// 3) Fix __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create Express app
+// 4) Create Express app
 const app = express();
 
 // -------- CORS SETUP FOR /api ROUTES --------
