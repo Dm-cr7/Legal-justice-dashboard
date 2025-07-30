@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import cors from "cors";                     // ← import cors
+import cors from "cors";
 
 // Fix __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -19,8 +19,10 @@ const app = express();
 
 // ----- CORS CONFIGURATION -----
 app.use(cors({
-  origin: process.env.FRONTEND_URL,         // ← your frontend URL, set in Render
-  credentials: true,                        // ← allow cookies/auth headers
+  origin: process.env.FRONTEND_URL,  // e.g. "https://legal-dashboard-frontend.onrender.com"
+  credentials: true,                 // allow cookies/auth headers
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
 
 // Body parsing middleware
@@ -57,8 +59,11 @@ app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
 // -------- REACT CLIENT-SIDE ROUTING FALLBACK --------
+app.options("*", cors()); // handle preflight for all routes
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
+  if (req.path.startsWith("/api") || req.path.includes(".")) {
+    return next();
+  }
   res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
     if (err) {
       console.error("⚠️ Failed to load index.html:", err);
