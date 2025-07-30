@@ -29,12 +29,12 @@ mongoose
     process.exit(1);
   });
 
-// -------- SERVE STATIC FRONTEND --------
+// -------- STATIC FRONTEND SETUP --------
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
 const clientPublicPath = path.join(__dirname, "..", "frontend", "public");
 
-app.use(express.static(clientBuildPath));
-app.use(express.static(clientPublicPath)); // <-- serves /logo.png and others
+app.use(express.static(clientBuildPath));      // built React app
+app.use(express.static(clientPublicPath));     // for /logo.png and others
 
 // -------- API ROUTES --------
 import authRoutes from "./routes/auth.js";
@@ -52,11 +52,13 @@ app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// -------- CLIENT-SIDE ROUTING (REACT) FALLBACK --------
-app.get("/*", (req, res) => {
+// -------- REACT CLIENT-SIDE ROUTING FALLBACK --------
+app.get("*", (req, res, next) => {
+  if (req.originalUrl.startsWith("/api")) return next(); // let API handle this
   res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
     if (err) {
-      res.sendFile(path.join(clientPublicPath, "index.html"));
+      console.error("⚠️ Failed to load index.html:", err);
+      res.status(500).send("Frontend index.html not found.");
     }
   });
 });
