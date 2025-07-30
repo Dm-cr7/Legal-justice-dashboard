@@ -7,93 +7,93 @@ import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
+// Helper to sign JWT
+const signToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
+// ===================== REGISTER =====================
 router.post("/register", async (req, res) => {
   const { name, email, password, role } = req.body;
 
   try {
-    // Check for existing user
-    let user = await User.findOne({ email });
-    if (user) {
+    const existing = await User.findOne({ email });
+    if (existing) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Create new user
-    user = new User({ name, email, password, role });
+    const user = new User({ name, email, password, role });
     await user.save();
 
-    // Sign JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = signToken(user._id);
 
-    res.status(201).json({
+    return res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
-    console.error("Registration error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Registration error:", err);
+    return res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
+// ===================== LOGIN =====================
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    console.log("🔍 Login attempt for email:", email);
+    console.log("🔐 Login attempt:", email);
 
-    // Find user including the password hash
     const user = await User.findOne({ email }).select("+password");
-    console.log("🔍 User fetched from DB:", user ? { id: user._id, role: user.role } : null);
-
     if (!user) {
-      console.warn("⚠️ No user found with that email");
+      console.warn("❗ User not found:", email);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await user.comparePassword(password);
-    console.log("🔍 Password match result:", isMatch);
-
     if (!isMatch) {
-      console.warn("⚠️ Password did not match for user:", email);
+      console.warn("❗ Password mismatch:", email);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Sign JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = signToken(user._id);
+    console.log("✅ Login success:", { userId: user._id, role: user.role });
 
-    console.log("✅ Login successful, issuing token for:", email);
-
-    // Return token and user info
-    res.json({
+    return res.status(200).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
-    console.error("Login error:", err);
-    // Expose the error message temporarily for debugging
-    res.status(500).json({ message: err.message });
+    console.error("❌ Login error:", err);
+    return res.status(500).json({ message: "Server error during login" });
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user profile
-// @access  Private
+// ===================== GET CURRENT USER =====================
 router.get("/me", protect, async (req, res) => {
-  res.json({
-    id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role,
-  });
+  try {
+    return res.json({
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+    });
+  } catch (err) {
+    console.error("❌ /me route error:", err);
+    return res.status(500).json({ message: "Failed to fetch user" });
+  }
 });
 
 export default router;
