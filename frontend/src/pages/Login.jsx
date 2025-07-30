@@ -7,6 +7,7 @@ import axios from 'axios';
 import { LogIn } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 
+// Validation schema
 const loginSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -32,14 +33,12 @@ export default function Login() {
 
       if (!role) throw new Error('No role assigned.');
 
-      // Store auth details in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
 
-      // Navigate based on role
       navigate(role === 'advocate' ? '/dashboard/advocate' : '/dashboard/paralegal');
     } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      const errorMsg = err.response?.data?.message || err.message || 'Login failed.';
       setApiError(errorMsg);
     }
   };
@@ -68,9 +67,7 @@ export default function Login() {
               {...register('email')}
               className="input"
             />
-            {errors.email && (
-              <p className="error">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="error">{errors.email.message}</p>}
           </div>
 
           <div>
@@ -83,9 +80,7 @@ export default function Login() {
               {...register('password')}
               className="input"
             />
-            {errors.password && (
-              <p className="error">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="error">{errors.password.message}</p>}
           </div>
 
           <AnimatePresence>
@@ -102,25 +97,15 @@ export default function Login() {
             )}
           </AnimatePresence>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="submit-btn"
-          >
-            {isSubmitting ? (
-              'Signing in...'
-            ) : (
-              <>
-                <LogIn size={20} />
-                Sign In
-              </>
-            )}
+          <button type="submit" disabled={isSubmitting} className="submit-btn">
+            {isSubmitting ? "Signing in..." : <>
+              <LogIn size={20} /> Sign In
+            </>}
           </button>
         </form>
 
         <p className="footer-link">
-          Don’t have an account?{' '}
-          <Link to="/register">Register here</Link>
+          Don’t have an account? <Link to="/register">Register here</Link>
         </p>
       </Motion.div>
 
@@ -172,7 +157,6 @@ export default function Login() {
           border-radius: 6px;
           background: #f8fafc;
           font-size: 1rem;
-          transition: border 0.2s ease;
         }
         .input:focus {
           outline: none;
@@ -204,7 +188,6 @@ export default function Login() {
           border: none;
           border-radius: 6px;
           cursor: pointer;
-          transition: background 0.2s ease;
         }
         .submit-btn:hover {
           background: #1d4ed8;
