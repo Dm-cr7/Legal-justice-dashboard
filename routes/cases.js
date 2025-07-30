@@ -3,7 +3,7 @@ import multer from "multer"
 import fs from "fs"
 import path from "path"
 import Case from "../models/Case.js"
-import { verifyUser } from "../middleware/auth.js"
+import { protect } from "../middleware/auth.js"
 
 const router = express.Router()
 

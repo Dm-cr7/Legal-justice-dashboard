@@ -22,26 +22,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB Atlas
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
 
-// -------- SERVE STATIC ASSETS --------
-// Adjust these paths if you use CRA (build/) or raw public/ during dev
+// -------- SERVE STATIC FRONTEND --------
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
-const clientPublicPath = path.join(__dirname, "..", "frontend", "public");
-
-// First, serve anything from the build output (after `npm run build`)
 app.use(express.static(clientBuildPath));
-
-// Fallback to serving raw public/ files if not present in dist (optional)
-app.use(express.static(clientPublicPath));
 
 // -------- API ROUTES --------
 import authRoutes from "./routes/auth.js";
@@ -59,12 +49,11 @@ app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// -------- CLIENT-SIDE ROUTING FALLBACK --------
-app.get("/*", (req, res) => {
-  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
+// -------- CLIENT-SIDE ROUTING (REACT) FALLBACK --------
+app.get("*", (req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"), function (err) {
     if (err) {
-      // If build/index.html not found, fall back to public/index.html
-      res.sendFile(path.join(clientPublicPath, "index.html"));
+      res.status(500).send("Frontend index.html not found.");
     }
   });
 });
