@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import cors from "cors";  // ← import cors
 
 // 1. Load env vars
 dotenv.config();
@@ -16,11 +17,21 @@ const __dirname = path.dirname(__filename);
 // 3. Create app
 const app = express();
 
-// 4. Body parsing
+// 4. CORS: allow your Static Site origin
+app.use(cors({
+  origin: "https://legal-dashboard-frontend.onrender.com",
+  credentials: true,   // allow cookies/auth headers
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
+}));
+// handle preflight
+app.options("*", cors());
+
+// 5. Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 5. API routes
+// 6. API routes
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
 import clientRoutes from "./routes/clients.js";
@@ -36,11 +47,11 @@ app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// 6. Serve React build
+// 7. Serve React build
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
 app.use(express.static(clientBuildPath));
 
-// 7. SPA fallback
+// 8. SPA fallback
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api") || req.path.includes(".")) return next();
   res.sendFile(path.join(clientBuildPath, "index.html"), err => {
@@ -51,13 +62,13 @@ app.get("*", (req, res, next) => {
   });
 });
 
-// 8. Error handler
+// 9. Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
 
-// 9. Connect & start
+// 10. Connect & start
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
