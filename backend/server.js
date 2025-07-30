@@ -31,7 +31,10 @@ mongoose
 
 // -------- SERVE STATIC FRONTEND --------
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
+const clientPublicPath = path.join(__dirname, "..", "frontend", "public");
+
 app.use(express.static(clientBuildPath));
+app.use(express.static(clientPublicPath)); // <-- serves /logo.png and others
 
 // -------- API ROUTES --------
 import authRoutes from "./routes/auth.js";
@@ -50,10 +53,10 @@ app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
 // -------- CLIENT-SIDE ROUTING (REACT) FALLBACK --------
-app.get("*", (req, res) => {
-  res.sendFile(path.join(clientBuildPath, "index.html"), function (err) {
+app.get("/*", (req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
     if (err) {
-      res.status(500).send("Frontend index.html not found.");
+      res.sendFile(path.join(clientPublicPath, "index.html"));
     }
   });
 });
