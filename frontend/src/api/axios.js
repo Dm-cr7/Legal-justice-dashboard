@@ -1,10 +1,19 @@
 // src/api/axios.js
 import axios from "axios";
 
-// Use the VITE_API_URL env var (set to your Render URL), falling back to localhost
+// Determine the backend base URL: from environment or fallback to local
+const baseURL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "http://localhost:5000/api";
+
+// Create an axios instance
 const API = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api`,
-  withCredentials: true, // allows cookies (for auth)
+  baseURL,
+  withCredentials: true, // Send and receive cookies (for authentication)
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
 });
 
 export default API;

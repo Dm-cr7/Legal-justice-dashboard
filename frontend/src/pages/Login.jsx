@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from 'axios';
+import axios from '../api/axios'; // ✅ custom axios instance
 import { LogIn } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 
@@ -26,7 +26,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setApiError(null);
     try {
-      const res = await axios.post('/api/auth/login', data, { withCredentials: true });
+      const res = await axios.post('/auth/login', data); // ✅ custom axios baseURL handles domain
 
       const { token, user } = res.data;
       const role = user?.role;
@@ -98,9 +98,11 @@ export default function Login() {
           </AnimatePresence>
 
           <button type="submit" disabled={isSubmitting} className="submit-btn">
-            {isSubmitting ? "Signing in..." : <>
-              <LogIn size={20} /> Sign In
-            </>}
+            {isSubmitting ? "Signing in..." : (
+              <>
+                <LogIn size={20} /> Sign In
+              </>
+            )}
           </button>
         </form>
 
