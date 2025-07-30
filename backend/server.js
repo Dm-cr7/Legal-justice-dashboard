@@ -17,19 +17,23 @@ dotenv.config();
 // Create Express app
 const app = express();
 
-// ----- CORS CONFIGURATION -----
-app.use(cors({
-  origin: process.env.FRONTEND_URL,  // e.g. "https://legal-dashboard-frontend.onrender.com"
-  credentials: true,                 // allow cookies/auth headers
+// -------- CORS SETUP FOR /api ROUTES --------
+const corsOptions = {
+  origin: process.env.FRONTEND_URL,          // e.g. https://legal-dashboard-frontend.onrender.com
+  credentials: true,                         // allow cookies/auth headers
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
-}));
+};
 
-// Body parsing middleware
+// Enable CORS and preflight for all /api/* routes
+app.use("/api", cors(corsOptions));
+app.options("/api/*", cors(corsOptions));     // explicit preflight handling
+
+// -------- BODY PARSING MIDDLEWARE --------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB Atlas
+// -------- MONGODB CONNECTION --------
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
@@ -51,16 +55,19 @@ import reportRoutes from "./routes/reports.js";
 import userRoutes from "./routes/userRoutes.js";
 import { protect } from "./middleware/auth.js";
 
+// Public auth endpoints
 app.use("/api/auth", authRoutes);
+
+// Protected endpoints
 app.use("/api/cases", protect, caseRoutes);
 app.use("/api/clients", protect, clientRoutes);
 app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// -------- REACT CLIENT-SIDE ROUTING FALLBACK --------
-app.options("*", cors()); // handle preflight for all routes
+// -------- SPA FALLBACK FOR CLIENT-SIDE ROUTING --------
 app.get("*", (req, res, next) => {
+  // Skip API and asset requests
   if (req.path.startsWith("/api") || req.path.includes(".")) {
     return next();
   }
@@ -80,7 +87,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// -------- START SERVER --------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
