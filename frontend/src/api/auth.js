@@ -1,17 +1,18 @@
 // src/api/auth.js
 
-// For unified Render deployments, the frontend and backend are on the same domain.
-// API calls should be relative to the current origin.
-// We are replacing the VITE_API_URL usage with a direct relative path.
-const API_BASE_PATH = "/api"; // <--- THIS IS THE KEY CHANGE: Define a new relative base path
+// For separate Render services (Frontend Static Site + Backend Web Service),
+// API calls must target the backend's absolute URL, which is provided via VITE_API_URL.
+// This variable needs to be set in your frontend static site's environment variables on Render.
+const API = import.meta.env.VITE_API_URL; // e.g. "https://legal-justice-dashboard.onrender.com"
 
 // Register a new user with role support
 export async function registerUser({ name, email, password, role }) {
   try {
-    const res = await fetch(`${API_BASE_PATH}/auth/register`, { // <--- Changed API to API_BASE_PATH
+    // Construct the full absolute URL for the backend API endpoint
+    const res = await fetch(`${API}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include", // for cookies/sessions
+      credentials: "include", // Essential for sending cookies/auth headers across origins
       body: JSON.stringify({ name, email, password, role }),
     });
 
@@ -28,10 +29,11 @@ export async function registerUser({ name, email, password, role }) {
 // Log in a user and persist their token and role
 export async function loginUser({ email, password }) {
   try {
-    const res = await fetch(`${API_BASE_PATH}/auth/login`, { // <--- Changed API to API_BASE_PATH
+    // Construct the full absolute URL for the backend API endpoint
+    const res = await fetch(`${API}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
+      credentials: "include", // Essential for sending cookies/auth headers across origins
       body: JSON.stringify({ email, password }),
     });
 
@@ -56,8 +58,9 @@ export async function loginUser({ email, password }) {
 // Fetch the current authenticated user
 export async function getCurrentUser() {
   try {
-    const res = await fetch(`${API_BASE_PATH}/auth/me`, { // <--- Changed API to API_BASE_PATH
-      credentials: "include",
+    // Construct the full absolute URL for the backend API endpoint
+    const res = await fetch(`${API}/api/auth/me`, {
+      credentials: "include", // Essential for sending cookies/auth headers across origins
     });
 
     if (!res.ok) throw new Error("Failed to fetch user");

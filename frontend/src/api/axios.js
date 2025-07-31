@@ -2,16 +2,16 @@
 
 import axios from "axios";
 
-// For unified Render deployments, the frontend and backend are on the same domain.
-// API calls should be relative to the current origin.
-// The VITE_API_URL environment variable is no longer needed for this specific setup
-// because the service itself handles both frontend and backend on the same URL.
-const baseURL = "/api"; // <--- THIS IS THE KEY CHANGE: Now it's a relative path
+// Determine the backend base URL from environment (Render) or fallback to local dev
+// For separate Render services, we must use the absolute URL for the backend.
+const baseURL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "http://localhost:5000/api";
 
 // Create and export an Axios instance preconfigured for your API
 const API = axios.create({
   baseURL,
-  withCredentials: true, // Send cookies (for auth) across origins if your backend uses them
+  withCredentials: true, // Send cookies (for auth) across origins
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
