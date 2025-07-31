@@ -1,11 +1,14 @@
 // src/api/auth.js
 
-const API = import.meta.env.VITE_API_URL; // e.g. "https://legal-justice-dashboard.onrender.com"
+// For unified Render deployments, the frontend and backend are on the same domain.
+// API calls should be relative to the current origin.
+// We are replacing the VITE_API_URL usage with a direct relative path.
+const API_BASE_PATH = "/api"; // <--- THIS IS THE KEY CHANGE: Define a new relative base path
 
 // Register a new user with role support
 export async function registerUser({ name, email, password, role }) {
   try {
-    const res = await fetch(`${API}/api/auth/register`, {
+    const res = await fetch(`${API_BASE_PATH}/auth/register`, { // <--- Changed API to API_BASE_PATH
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // for cookies/sessions
@@ -25,7 +28,7 @@ export async function registerUser({ name, email, password, role }) {
 // Log in a user and persist their token and role
 export async function loginUser({ email, password }) {
   try {
-    const res = await fetch(`${API}/api/auth/login`, {
+    const res = await fetch(`${API_BASE_PATH}/auth/login`, { // <--- Changed API to API_BASE_PATH
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -53,7 +56,7 @@ export async function loginUser({ email, password }) {
 // Fetch the current authenticated user
 export async function getCurrentUser() {
   try {
-    const res = await fetch(`${API}/api/auth/me`, {
+    const res = await fetch(`${API_BASE_PATH}/auth/me`, { // <--- Changed API to API_BASE_PATH
       credentials: "include",
     });
 
