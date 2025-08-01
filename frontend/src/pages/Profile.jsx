@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api/axios";
 import { useForm } from "react-hook-form";
 
 export default function Profile() {
@@ -20,8 +20,9 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("/api/auth/me", { withCredentials: true });
+        const res = await API.get("/api/auth/me");
         setProfile(res.data);
+        reset(); // for password form
       } catch {
         setProfileMessage({ text: "Failed to load profile", type: "error" });
       } finally {
@@ -36,7 +37,7 @@ export default function Profile() {
     setSaving(true);
     setProfileMessage(null);
     try {
-      const res = await axios.put("/api/users/profile", profile, { withCredentials: true });
+      const res = await API.put("/api/users/profile", profile);
       setProfile(res.data);
       setProfileMessage({ text: "Profile updated successfully", type: "success" });
     } catch {
@@ -49,7 +50,7 @@ export default function Profile() {
   const onPasswordSubmit = async (data) => {
     setPassMessage(null);
     try {
-      await axios.put("/api/users/password", data, { withCredentials: true });
+      await API.put("/api/users/password", data);
       setPassMessage({ text: "Password updated successfully", type: "success" });
       reset({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch {

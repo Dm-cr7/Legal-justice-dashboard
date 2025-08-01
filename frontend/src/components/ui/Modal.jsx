@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
-/**
- * A self-contained, reusable Modal component.
- * Includes internal styling, dark mode support, and backdrop click-to-close.
- */
 export default function Modal({ children, onClose, title, isOpen }) {
+  const modalRef = useRef(null);
+
+  // Close on Esc key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Prevent render if not open
   if (!isOpen) return null;
 
+  // Styles
   const backdropStyle = {
     position: 'fixed',
     inset: 0,
@@ -17,6 +26,7 @@ export default function Modal({ children, onClose, title, isOpen }) {
     alignItems: 'center',
     zIndex: 1000,
     padding: '1rem',
+    animation: 'fadeIn 0.3s ease-in-out',
   };
 
   const modalStyle = {
@@ -29,7 +39,8 @@ export default function Modal({ children, onClose, title, isOpen }) {
     maxWidth: '500px',
     padding: '1.5rem',
     position: 'relative',
-    transition: 'all 0.3s ease-in-out',
+    animation: 'scaleIn 0.3s ease',
+    outline: 'none',
   };
 
   const headerStyle = {
@@ -54,16 +65,43 @@ export default function Modal({ children, onClose, title, isOpen }) {
   };
 
   return (
-    <div style={backdropStyle} onClick={onClose} aria-modal="true" role="dialog">
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={headerStyle}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>{title}</h3>
-          <button onClick={onClose} style={closeButtonStyle} aria-label="Close modal">
-            <X size={20} />
-          </button>
+    <>
+      <style>
+        {`
+        @keyframes fadeIn {
+          from { opacity: 0 }
+          to { opacity: 1 }
+        }
+
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `}
+      </style>
+
+      <div
+        style={backdropStyle}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        ref={modalRef}
+      >
+        <div style={modalStyle}>
+          <div style={headerStyle}>
+            <h3 id="modal-title" style={{ fontSize: '1.125rem', fontWeight: '600' }}>
+              {title}
+            </h3>
+            <button onClick={onClose} style={closeButtonStyle} aria-label="Close modal">
+              <X size={20} />
+            </button>
+          </div>
+          <div style={bodyStyle}>{children}</div>
         </div>
-        <div style={bodyStyle}>{children}</div>
       </div>
-    </div>
+    </>
   );
 }

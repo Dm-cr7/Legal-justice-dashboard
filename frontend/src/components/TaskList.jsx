@@ -1,37 +1,50 @@
 import React from "react";
 
 export default function TaskList({ tasks, onStatusChange }) {
-  if (tasks.length === 0) {
+  if (!tasks || tasks.length === 0) {
     return <p style={styles.empty}>No tasks assigned yet.</p>;
   }
 
   return (
     <div style={styles.list}>
-      {tasks.map((task) => (
-        <div key={task._id} style={styles.card}>
-          <h3 style={styles.title}>{task.title}</h3>
-          <p style={styles.description}>{task.description || "No description provided."}</p>
-          <p style={styles.date}>
-            Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A"}
-          </p>
+      {tasks.map((task) => {
+        const { _id, title, description, dueDate, status } = task;
 
-          <div style={styles.statusRow}>
-            <label htmlFor={`status-${task._id}`} style={styles.statusLabel}>
-              Status:
-            </label>
-            <select
-              id={`status-${task._id}`}
-              value={task.status}
-              onChange={(e) => onStatusChange(task._id, e.target.value)}
-              style={styles.select}
-            >
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-            </select>
+        return (
+          <div key={_id} style={styles.card} data-testid={`task-${_id}`}>
+            <h3 style={styles.title}>
+              {title || <span style={styles.placeholder}>Untitled Task</span>}
+            </h3>
+            <p style={styles.description}>
+              {description || "No description provided."}
+            </p>
+            <p style={styles.date}>
+              Due: {dueDate ? new Date(dueDate).toLocaleDateString() : "N/A"}
+            </p>
+
+            <div style={styles.statusRow}>
+              <label
+                htmlFor={`status-${_id}`}
+                style={styles.statusLabel}
+              >
+                Status:
+              </label>
+              <select
+                id={`status-${_id}`}
+                value={status}
+                onChange={(e) => onStatusChange(_id, e.target.value)}
+                style={styles.select}
+                aria-label={`Change status for ${title || "Unnamed Task"}`}
+                data-testid={`status-select-${_id}`}
+              >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -61,6 +74,11 @@ const styles = {
     fontWeight: "600",
     marginBottom: "0.25rem",
     color: "#0f172a"
+  },
+  placeholder: {
+    color: "#94a3b8",
+    fontStyle: "italic",
+    fontWeight: 400
   },
   description: {
     fontSize: "0.95rem",

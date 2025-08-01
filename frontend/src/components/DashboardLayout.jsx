@@ -1,4 +1,3 @@
-// src/components/DashboardLayout.jsx
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -21,7 +20,7 @@ export default function DashboardLayout() {
           font-family: 'Inter', sans-serif;
         }
 
-        .sidebar {
+        aside.sidebar {
           background-color: #ffffff;
           border-right: 1px solid #e5e7eb;
           transition: width 0.3s ease-in-out;
@@ -68,9 +67,9 @@ export default function DashboardLayout() {
       <div className="dashboard-layout">
         {/* Sidebar */}
         <aside
-          className={`sidebar ${
-            isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'
-          }`}
+          className={`sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}
+          role="complementary"
+          aria-label="Sidebar navigation"
         >
           <Sidebar
             isExpanded={isSidebarExpanded}
@@ -78,9 +77,9 @@ export default function DashboardLayout() {
           />
         </aside>
 
-        {/* Main Content */}
+        {/* Main Content Area */}
         <div className="main">
-          <main className="main-content">
+          <main className="main-content" role="main" aria-label="Main content">
             <div className="content-inner">
               <Outlet />
             </div>

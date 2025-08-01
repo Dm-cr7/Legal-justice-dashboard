@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import API from "../api/axios";
 
 export default function NewClientModal({ onClose, onSuccess }) {
   const [name, setName] = useState("");
@@ -11,14 +11,14 @@ export default function NewClientModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!name || !contact) {
+    if (!name.trim() || !contact.trim()) {
       setError("Name and Contact are required.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await axios.post("/api/clients", { name, contact, notes });
+      const res = await API.post("/api/clients", { name, contact, notes });
       if (res.data) {
         onSuccess(res.data);
         onClose();
@@ -38,6 +38,7 @@ export default function NewClientModal({ onClose, onSuccess }) {
         <form onSubmit={handleSubmit}>
           <label style={labelStyle}>Name</label>
           <input
+            type="text"
             style={inputStyle}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -46,6 +47,7 @@ export default function NewClientModal({ onClose, onSuccess }) {
 
           <label style={labelStyle}>Contact</label>
           <input
+            type="text"
             style={inputStyle}
             value={contact}
             onChange={(e) => setContact(e.target.value)}

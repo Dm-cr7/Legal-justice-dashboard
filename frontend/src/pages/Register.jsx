@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api/axios'; // ✅ Use custom axios instance
 import { UserPlus } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,11 +27,13 @@ export default function Register() {
   const onSubmit = async (data) => {
     setApiError(null);
     try {
-      await axios.post('/api/auth/register', data, { withCredentials: true });
+      await API.post('/api/auth/register', data, { withCredentials: true });
       navigate('/login');
     } catch (err) {
       console.error("Registration failed:", err);
-      setApiError(err.response?.data?.error || "An unexpected error occurred.");
+      setApiError(
+        err.response?.data?.error || err.message || "An unexpected error occurred."
+      );
     }
   };
 

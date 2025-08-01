@@ -1,7 +1,7 @@
-// src/components/AnalyticsCards.jsx
 import React from "react";
+import PropTypes from "prop-types";
 
-export default function AnalyticsCards({ pending, inProgress, done }) {
+export default function AnalyticsCards({ pending = 0, inProgress = 0, done = 0 }) {
   return (
     <>
       <div className="analytics-cards">
@@ -25,21 +25,24 @@ export default function AnalyticsCards({ pending, inProgress, done }) {
           grid-template-columns: 1fr;
           gap: 16px;
           margin-bottom: 24px;
+          padding: 0 1rem;
         }
 
         @media (min-width: 640px) {
           .analytics-cards {
             grid-template-columns: repeat(3, 1fr);
+            padding: 0;
           }
         }
 
         .card {
           background-color: white;
-          padding: 16px;
+          padding: 20px;
           border-radius: 12px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-          border: 1px solid #e0e0e0;
+          border: 1px solid #e5e7eb;
           transition: box-shadow 0.2s ease;
+          text-align: center;
         }
 
         .card:hover {
@@ -47,16 +50,17 @@ export default function AnalyticsCards({ pending, inProgress, done }) {
         }
 
         .card h2 {
-          font-size: 18px;
+          font-size: 1rem;
           font-weight: 600;
           margin-bottom: 8px;
-          color: #333;
+          color: #374151;
         }
 
         .card p {
-          font-size: 28px;
+          font-size: 2rem;
           font-weight: bold;
           color: #1a73e8;
+          margin: 0;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -66,7 +70,7 @@ export default function AnalyticsCards({ pending, inProgress, done }) {
           }
 
           .card h2 {
-            color: #f3f4f6;
+            color: #f9fafb;
           }
 
           .card p {
@@ -77,3 +81,9 @@ export default function AnalyticsCards({ pending, inProgress, done }) {
     </>
   );
 }
+
+AnalyticsCards.propTypes = {
+  pending: PropTypes.number,
+  inProgress: PropTypes.number,
+  done: PropTypes.number,
+};

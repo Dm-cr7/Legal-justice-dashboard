@@ -1,11 +1,14 @@
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Topbar({ onMenuClick }) {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        <h1 style={styles.title}>Justice App</h1>
+        <Link to="/dashboard" style={styles.titleLink}>
+          <h1 style={styles.title}>Justice App</h1>
+        </Link>
         <button
           onClick={onMenuClick}
           aria-label="Open sidebar"
@@ -22,14 +25,20 @@ const styles = {
   header: {
     backgroundColor: "#ffffff",
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-    display: "block",
     borderBottom: "1px solid #e5e7eb",
+    position: "sticky",
+    top: 0,
+    zIndex: 20,
+    width: "100%",
   },
   container: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "1rem",
+  },
+  titleLink: {
+    textDecoration: "none",
   },
   title: {
     fontSize: "1.25rem",
@@ -45,5 +54,10 @@ const styles = {
     cursor: "pointer",
     padding: "0.25rem",
     outline: "none",
+    borderRadius: "6px",
+    transition: "background 0.2s ease",
+  },
+  menuButtonHover: {
+    backgroundColor: "#f1f5f9", // hover state (optional in future)
   },
 };

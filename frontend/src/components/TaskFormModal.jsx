@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import axios from 'axios';
+import API from '../api/axios';
 import { toast } from 'sonner';
 import Modal from './ui/Modal.jsx';
 import Button from './ui/Button.jsx';
@@ -13,39 +13,48 @@ export default function TaskFormModal({ isOpen, onClose, onCreated }) {
     formState: { isSubmitting, errors }
   } = useForm();
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) reset();
+  }, [isOpen, reset]);
+
   const onSubmit = async (data) => {
     try {
-      const res = await axios.post('/api/tasks', data, { withCredentials: true });
+      const res = await API.post('/api/tasks', data);
       onCreated(res.data);
+      toast.success("✅ Task created successfully!");
       reset();
       onClose();
-      toast.success("✅ Task created successfully!");
     } catch (err) {
       console.error("Task creation error:", err);
-      const message = err.response?.data?.error || "❌ Failed to create task.";
+      const message = err?.response?.data?.error || "❌ Failed to create task.";
       toast.error(message);
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create New Task">
-      <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+      <form onSubmit={handleSubmit(onSubmit)} style={styles.form} aria-label="Create task form">
+        {/* Task Title Field */}
         <div style={styles.field}>
           <label htmlFor="title" style={styles.label}>Task Title</label>
           <input
-            {...register("title", { required: "Task title is required" })}
             id="title"
+            {...register("title", { required: "Task title is required" })}
             placeholder="e.g. File court submission"
             style={{
               ...styles.input,
               borderColor: errors.title ? "#dc2626" : "#cbd5e1"
             }}
+            aria-invalid={!!errors.title}
+            aria-describedby={errors.title ? "title-error" : undefined}
           />
           {errors.title && (
-            <p style={styles.error}>{errors.title.message}</p>
+            <p id="title-error" style={styles.error}>{errors.title.message}</p>
           )}
         </div>
 
+        {/* Actions */}
         <div style={styles.actions}>
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
@@ -59,6 +68,7 @@ export default function TaskFormModal({ isOpen, onClose, onCreated }) {
   );
 }
 
+// Styles
 const styles = {
   form: {
     display: "flex",

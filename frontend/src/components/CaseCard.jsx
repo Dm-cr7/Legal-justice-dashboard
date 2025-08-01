@@ -1,5 +1,4 @@
-// src/components/CaseCard.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Edit, Trash2 } from 'lucide-react';
 
@@ -12,13 +11,20 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    setTitle(c.title);
+    setDescription(c.description);
+    setStatus(c.status);
+  }, [c]);
+
   const handleUpdate = async () => {
     try {
       const res = await axios.put(`/api/cases/${c._id}`, { title, description, status }, { withCredentials: true });
       onUpdated(res.data);
       setEditing(false);
     } catch (err) {
-      console.error("Failed to update case:", err);
+      alert("Failed to update case.");
+      console.error(err);
     }
   };
 
@@ -27,7 +33,8 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
       await axios.delete(`/api/cases/${c._id}`, { withCredentials: true });
       onDeleted(c._id);
     } catch (err) {
-      console.error("Failed to delete case:", err);
+      alert("Failed to delete case.");
+      console.error(err);
     }
   };
 
@@ -44,7 +51,8 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
       onUpdated({ ...c, documents: [...(c.documents || []), res.data.document] });
       setSelectedFile(null);
     } catch (err) {
-      console.error("Upload failed:", err);
+      alert("Failed to upload document.");
+      console.error(err);
     } finally {
       setUploading(false);
     }
@@ -55,6 +63,8 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
     'In Progress': 'badge blue',
     'Done': 'badge green',
   };
+
+  const fileUrl = (relativePath) => `${window.location.origin}${relativePath}`;
 
   return (
     <div className="case-card">
@@ -82,7 +92,6 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
           border-radius: 999px;
           font-size: 0.75rem;
           font-weight: 600;
-          text-align: center;
         }
         .badge.yellow {
           background: #fef3c7;
@@ -98,7 +107,7 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
         }
         .desc {
           font-size: 0.9rem;
-          color: #666;
+          color: #555;
           margin-top: 8px;
         }
         .edit-input,
@@ -168,7 +177,7 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
 
       {editing ? (
         <>
-          <h3 className="title">Editing Case</h3>
+          <h3 className="title">Edit Case</h3>
           <div>
             <label>Title</label>
             <input className="edit-input" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -204,7 +213,7 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
               <ul>
                 {c.documents.map((doc, idx) => (
                   <li key={idx}>
-                    <a href={`http://localhost:5000${doc.url}`} target="_blank" rel="noopener noreferrer">
+                    <a href={fileUrl(doc.url)} target="_blank" rel="noopener noreferrer">
                       {doc.filename}
                     </a>
                   </li>
@@ -216,8 +225,15 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
           <div className="upload">
             <label>Upload Document:</label>
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} />
-              <button className="button primary" onClick={handleUpload} disabled={uploading || !selectedFile}>
+              <input
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+              />
+              <button
+                className="button primary"
+                onClick={handleUpload}
+                disabled={uploading || !selectedFile}
+              >
                 {uploading ? "Uploading..." : "Upload"}
               </button>
             </div>
@@ -226,8 +242,12 @@ export default function CaseCard({ c, onUpdated, onDeleted }) {
           <div className="actions">
             {!showDeleteConfirm ? (
               <>
-                <button className="button secondary" onClick={() => setEditing(true)}><Edit size={16} /> Edit</button>
-                <button className="button danger" onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /> Delete</button>
+                <button className="button secondary" onClick={() => setEditing(true)}>
+                  <Edit size={16} /> Edit
+                </button>
+                <button className="button danger" onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 size={16} /> Delete
+                </button>
               </>
             ) : (
               <div className="confirm-box">

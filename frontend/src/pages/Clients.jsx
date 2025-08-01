@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import API from "../api/axios";
 import { Plus, X, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,7 +47,7 @@ const NewClientModal = ({ isOpen, onClose, onCreated }) => {
 
   const onSubmit = async (data) => {
     try {
-      const res = await axios.post('/api/clients', data, { withCredentials: true });
+      const res = await API.post('/api/clients', data);
       onCreated(res.data);
       toast.success("✅ Client created");
       reset();
@@ -76,7 +76,7 @@ const NewClientModal = ({ isOpen, onClose, onCreated }) => {
         </label>
         <div className="form-actions">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Create"}
           </Button>
         </div>
@@ -88,11 +88,13 @@ const NewClientModal = ({ isOpen, onClose, onCreated }) => {
 const EditClientModal = ({ isOpen, onClose, client, onUpdated }) => {
   const { register, handleSubmit, reset, formState: { isSubmitting, errors } } = useForm({ defaultValues: client });
 
-  useEffect(() => { reset(client); }, [client]);
+  useEffect(() => {
+    if (client) reset(client);
+  }, [client]);
 
   const onSubmit = async (data) => {
     try {
-      const res = await axios.put(`/api/clients/${client._id}`, data, { withCredentials: true });
+      const res = await API.put(`/api/clients/${client._id}`, data);
       onUpdated(res.data);
       toast.success("✅ Client updated");
       onClose();
@@ -102,7 +104,7 @@ const EditClientModal = ({ isOpen, onClose, client, onUpdated }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Client">
+    <Modal isOpen={isOpen && !!client} onClose={onClose} title="Edit Client">
       <form onSubmit={handleSubmit(onSubmit)} className="form">
         <label>
           Name
@@ -120,7 +122,7 @@ const EditClientModal = ({ isOpen, onClose, client, onUpdated }) => {
         </label>
         <div className="form-actions">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>
         </div>
@@ -132,7 +134,7 @@ const EditClientModal = ({ isOpen, onClose, client, onUpdated }) => {
 const DeleteClientModal = ({ isOpen, onClose, client, onDeleted }) => {
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/clients/${client._id}`, { withCredentials: true });
+      await API.delete(`/api/clients/${client._id}`);
       onDeleted(client._id);
       toast.success("🗑️ Client deleted");
       onClose();
@@ -142,7 +144,7 @@ const DeleteClientModal = ({ isOpen, onClose, client, onDeleted }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Delete Client">
+    <Modal isOpen={isOpen && !!client} onClose={onClose} title="Delete Client">
       <div className="delete-confirm">
         <p>
           Are you sure you want to delete <strong>{client.name}</strong>? This action cannot be undone.
@@ -169,10 +171,8 @@ export default function Clients() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const res = await fetch("/api/clients", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to fetch clients");
-        const data = await res.json();
-        setClients(data);
+        const res = await API.get("/api/clients");
+        setClients(res.data);
       } catch (err) {
         toast.error("❌ Failed to load clients");
         setError(err.message);
@@ -243,6 +243,7 @@ export default function Clients() {
         </table>
       </Card>
 
+      {/* Scoped styles below */}
       <style>{`
         .page { padding: 24px; background: #f9fafe; min-height: 100vh; font-family: 'Inter', sans-serif; color: #111; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }

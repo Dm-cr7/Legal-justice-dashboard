@@ -1,7 +1,6 @@
-// src/components/Sidebar.jsx
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../api/axios";
 import {
   Home, User, Settings, LogOut, BarChart2,
   FileText, Users, Briefcase, ChevronLeft, ChevronRight,
@@ -43,13 +42,13 @@ const SidebarLink = ({ to, icon, children, isExpanded }) => (
 
 export default function Sidebar({ isExpanded, setExpanded }) {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({ name: "Guest", email: "Not logged in" });
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/api/auth/me", { withCredentials: true });
-        setUser(res.data);
+        const res = await API.get("/api/auth/me", { withCredentials: true });
+        if (res.data) setUser(res.data);
       } catch {
         setUser({ name: "Guest", email: "Not logged in" });
       }
@@ -59,6 +58,8 @@ export default function Sidebar({ isExpanded, setExpanded }) {
 
   const handleLogout = () => {
     localStorage.removeItem("role");
+    // Optional: Also call backend logout
+    // await API.post('/api/auth/logout', {}, { withCredentials: true });
     navigate("/login");
   };
 
@@ -130,7 +131,7 @@ export default function Sidebar({ isExpanded, setExpanded }) {
           }}
         >
           <div style={styles.avatar}>
-            {user?.name?.charAt(0).toUpperCase() || "?"}
+            {user?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
           <div
             style={{
@@ -141,7 +142,7 @@ export default function Sidebar({ isExpanded, setExpanded }) {
               overflow: "hidden",
             }}
           >
-            <p style={{ fontSize: "14px", fontWeight: 600 }}>{user?.name}</p>
+            <p style={{ fontSize: "14px", fontWeight: 600 }}>{user?.name || "Guest"}</p>
             <p style={{ fontSize: "12px", color: "#475569" }}>{user?.email}</p>
           </div>
           <button

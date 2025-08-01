@@ -4,35 +4,38 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 /**
- * Middleware to protect routes — verifies JWT and attaches user to req.
+ * Protect middleware:
+ *   Only checks for Bearer token in Authorization header,
+ *   verifies it, and attaches the user to req.
  */
 export const protect = async (req, res, next) => {
-  let token;
-
-  // Check for Bearer token in Authorization header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    try {
-      // Extract token
-      token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Fetch user (excluding password) and attach to request
-      req.user = await User.findById(decoded.id).select("-password");
-
-      return next();
-    } catch (error) {
-      console.error("Auth middleware error:", error);
-      return res.status(401).json({ message: "Not authorized, token failed" });
-    }
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res
+      .status(401)
+      .json({ message: "Not authorized, token missing or malformed." });
   }
 
-  // No token provided
-  if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) {
+      return res
+        .status(401)
+        .json({ message: "Not authorized, user not found." });
+    }
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error("🔒 Auth Error:", err);
+    if (err.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json({ message: "Session expired. Please log in again." });
+    }
+    return res
+      .status(401)
+      .json({ message: "Invalid token. Please authenticate again." });
   }
 };

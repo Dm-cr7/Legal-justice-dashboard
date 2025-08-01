@@ -1,8 +1,10 @@
 import React, { useEffect } from "react";
 
-export default function SkeletonLoader() {
+export default function SkeletonLoader({ count = 6 }) {
   useEffect(() => {
-    // Inject shimmer animation CSS only once
+    // Avoid injecting CSS on server or duplicate injection on client
+    if (typeof window === "undefined") return;
+
     const styleId = "skeleton-shimmer-style";
     if (!document.getElementById(styleId)) {
       const style = document.createElement("style");
@@ -22,6 +24,8 @@ export default function SkeletonLoader() {
           );
           background-size: 800px 104px;
           animation: shimmer 1.5s infinite linear;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
       `;
       document.head.appendChild(style);
@@ -37,14 +41,12 @@ export default function SkeletonLoader() {
 
   const cardStyle = {
     height: "120px",
-    borderRadius: "12px",
     backgroundColor: "#e2e8f0",
-    overflow: "hidden",
   };
 
   return (
-    <div style={containerStyle}>
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div style={containerStyle} role="status" aria-busy="true">
+      {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="skeleton-box" style={cardStyle}></div>
       ))}
     </div>

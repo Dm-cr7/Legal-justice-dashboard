@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import API from '../api/axios'; // ✅ Use secured API instance
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import { Briefcase, Users, ClipboardCheck, AlertTriangle } from 'lucide-react';
-
-// --- START: Reusable Components ---
 
 const Card = ({ children, className = '' }) => (
   <div className={`card ${className}`}>{children}</div>
@@ -24,15 +22,21 @@ const StatCard = ({ title, value, icon }) => (
   </Card>
 );
 
-// --- END: Reusable Components ---
-
-const COLORS = ['#FFBB28', '#0088FE', '#00C49F'];
+const COLORS = ['#FFBB28', '#0088FE', '#00C49F', '#FF8042', '#A78BFA'];
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ totalCases: 0, totalClients: 0, openTasks: 0, overdueTasks: 0 });
-  const [chartData, setChartData] = useState({ monthlyCaseData: [], caseStatusData: [] });
+  const [stats, setStats] = useState({
+    totalCases: 0,
+    totalClients: 0,
+    openTasks: 0,
+    overdueTasks: 0
+  });
+  const [chartData, setChartData] = useState({
+    monthlyCaseData: [],
+    caseStatusData: []
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,13 +44,14 @@ export default function Analytics() {
       setError(null);
       try {
         const [summaryRes, chartsRes] = await Promise.all([
-          axios.get('/api/reports/summary', { withCredentials: true }),
-          axios.get('/api/reports/charts', { withCredentials: true })
+          API.get('/api/reports/summary'), // ✅ uses token
+          API.get('/api/reports/charts')
         ]);
         setStats(summaryRes.data);
         setChartData(chartsRes.data);
       } catch (err) {
-        setError(err.response?.data?.error || "Failed to load analytics data.");
+        console.error("Analytics fetch error:", err);
+        setError(err.response?.data?.message || "Failed to load analytics data.");
       } finally {
         setLoading(false);
       }
@@ -92,7 +97,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderRadius: '8px', color: 'white' }} />
                 <Legend />
                 <Bar dataKey="newCases" fill="#3b82f6" name="New Cases" />
                 <Bar dataKey="closedCases" fill="#10b981" name="Closed Cases" />
@@ -109,7 +114,7 @@ export default function Analytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={chartData.caseStatusData}
+                  data={chartData.caseStatusData || []}
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
@@ -117,11 +122,11 @@ export default function Analytics() {
                   nameKey="name"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
-                  {chartData.caseStatusData.map((entry, index) => (
+                  {(chartData.caseStatusData || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderRadius: '8px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderRadius: '8px', color: 'white' }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

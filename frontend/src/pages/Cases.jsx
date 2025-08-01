@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
+import API from "../api/axios";
 
-// Icons and toast
 import { Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-// Components (assumed to be present in your project)
 import NewCaseModal from "../components/NewCaseModal";
 import CaseCard from "../components/CaseCard";
-import SkeletonLoader from "../components/SkeletonLoader";
-import Button from "../components/ui/Button";
+import SkeletonLoader from "../components/ui/SkeletonLoader";
 
 export default function Cases() {
   const [cases, setCases] = useState([]);
@@ -21,13 +19,13 @@ export default function Cases() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/cases", { credentials: "include" });
-        if (!res.ok) throw new Error(`Failed to fetch cases: ${await res.text()}`);
-        setCases(await res.json());
+        const res = await API.get("/api/cases");
+        setCases(res.data);
       } catch (err) {
         console.error("Fetch cases error:", err);
-        setError(err.message);
-        toast.error(err.message);
+        const message = err.response?.data?.message || "Error fetching cases.";
+        setError(message);
+        toast.error(message);
       } finally {
         setLoading(false);
       }

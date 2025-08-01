@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import axios from 'axios';
+import API from '../api/axios';  // ← use your centralized API instance
 
 export default function NewCaseModal({ isOpen, onClose, onCreated }) {
   const {
@@ -8,30 +8,48 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
     handleSubmit,
     reset,
     formState: { isSubmitting, errors }
-  } = useForm({
-    defaultValues: { status: 'Pending' }
-  });
+  } = useForm({ defaultValues: { status: 'Pending' } });
 
   const [apiError, setApiError] = useState(null);
+  const modalRef = useRef(null);
 
   const onSubmit = async (data) => {
     setApiError(null);
     try {
-      const res = await axios.post('/api/cases', data, { withCredentials: true });
+      const res = await API.post('/api/cases', data);  // ← use API.post
       onCreated(res.data);
       reset();
       onClose();
     } catch (err) {
       console.error("Failed to create case:", err);
-      setApiError(err.response?.data?.error || "An unexpected error occurred.");
+      setApiError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "An unexpected error occurred."
+      );
     }
   };
+
+  // Close on ESC
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    if (isOpen) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  // Close on outside click
+  useEffect(() => {
+    const onClick = (e) =>
+      modalRef.current && !modalRef.current.contains(e.target) && onClose();
+    if (isOpen) document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <>
-      <style>{`
+      <style jsx>{`
         .modal-backdrop {
           position: fixed;
           inset: 0;
@@ -41,7 +59,6 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
           justify-content: center;
           z-index: 1000;
         }
-
         .modal-content {
           background: #fff;
           max-width: 500px;
@@ -51,25 +68,23 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
           padding: 2rem;
           position: relative;
         }
-
         .modal-title {
           font-size: 1.25rem;
           font-weight: 600;
           margin-bottom: 1rem;
         }
-
         .form-group {
           margin-bottom: 1rem;
         }
-
         .form-label {
           display: block;
           font-size: 0.9rem;
           margin-bottom: 0.5rem;
           color: #374151;
         }
-
-        .form-input, .form-select, .form-textarea {
+        .form-input,
+        .form-select,
+        .form-textarea {
           width: 100%;
           padding: 0.5rem 0.75rem;
           border: 1px solid #d1d5db;
@@ -78,17 +93,14 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
           background: #f9fafb;
           color: #111827;
         }
-
         .form-textarea {
           resize: vertical;
         }
-
         .error-message {
           color: #dc2626;
           font-size: 0.85rem;
           margin-top: 0.25rem;
         }
-
         .error-box {
           background: #fee2e2;
           color: #b91c1c;
@@ -98,14 +110,12 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
           font-size: 0.9rem;
           margin-top: 1rem;
         }
-
         .modal-actions {
           display: flex;
           justify-content: flex-end;
           gap: 0.5rem;
           margin-top: 1.5rem;
         }
-
         .btn {
           padding: 0.5rem 1rem;
           border: none;
@@ -114,33 +124,28 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
           font-weight: 500;
           font-size: 0.95rem;
         }
-
         .btn-primary {
           background-color: #2563eb;
           color: white;
         }
-
         .btn-primary:disabled {
           background-color: #93c5fd;
           cursor: not-allowed;
         }
-
         .btn-secondary {
           background-color: #e5e7eb;
           color: #374151;
         }
-
         .btn-secondary:hover {
           background-color: #d1d5db;
         }
       `}</style>
 
-      <div className="modal-backdrop">
-        <div className="modal-content">
+      <div className="modal-backdrop" role="dialog" aria-modal="true">
+        <div className="modal-content" ref={modalRef}>
           <div className="modal-title">Create New Case</div>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Case Title */}
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="form-group">
               <label htmlFor="title" className="form-label">Case Title</label>
               <input
@@ -154,7 +159,6 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
               )}
             </div>
 
-            {/* Description */}
             <div className="form-group">
               <label htmlFor="description" className="form-label">Description</label>
               <textarea
@@ -166,7 +170,6 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
               />
             </div>
 
-            {/* Status */}
             <div className="form-group">
               <label htmlFor="status" className="form-label">Status</label>
               <select
@@ -180,12 +183,8 @@ export default function NewCaseModal({ isOpen, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* Error Box */}
-            {apiError && (
-              <div className="error-box">{apiError}</div>
-            )}
+            {apiError && <div className="error-box">{apiError}</div>}
 
-            {/* Action Buttons */}
             <div className="modal-actions">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Cancel

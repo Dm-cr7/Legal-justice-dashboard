@@ -3,14 +3,14 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from '../api/axios'; // ✅ custom axios instance
+import API from '../api/axios';
 import { LogIn } from 'lucide-react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 // Validation schema
 const loginSchema = z.object({
-  email: z.string().email({ message: "Enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  email: z.string().email({ message: 'Enter a valid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
 export default function Login() {
@@ -21,16 +21,17 @@ export default function Login() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(loginSchema) });
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (data) => {
     setApiError(null);
     try {
-      const res = await axios.post('/auth/login', data); // ✅ custom axios baseURL handles domain
-
+      const res = await API.post('/api/auth/login', data); // assumes correct API prefix
       const { token, user } = res.data;
-      const role = user?.role;
 
+      const role = user?.role;
       if (!role) throw new Error('No role assigned.');
 
       localStorage.setItem('token', token);
@@ -98,7 +99,7 @@ export default function Login() {
           </AnimatePresence>
 
           <button type="submit" disabled={isSubmitting} className="submit-btn">
-            {isSubmitting ? "Signing in..." : (
+            {isSubmitting ? 'Signing in...' : (
               <>
                 <LogIn size={20} /> Sign In
               </>

@@ -1,98 +1,96 @@
-import React, { useState } from "react"
-import { useForm } from "react-hook-form"
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import axios from "axios";
 
 export default function NewClientModal({ onClientAdded }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
     reset,
-  } = useForm()
+    formState: { errors, isSubmitting }
+  } = useForm();
 
-  const openModal = () => setIsOpen(true)
+  const openModal = () => setIsOpen(true);
   const closeModal = () => {
-    reset()
-    setIsOpen(false)
-  }
+    reset();
+    setIsOpen(false);
+  };
 
   const onSubmit = async (data) => {
     try {
-      const res = await fetch("/api/clients", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || res.statusText)
-      }
-      const newClient = await res.json()
-      onClientAdded(newClient)  // inform parent to update list
-      closeModal()
+      const res = await axios.post("/api/clients", data, { withCredentials: true });
+      onClientAdded(res.data);
+      closeModal();
     } catch (err) {
-      console.error("Failed to add client:", err)
-      alert("Error adding client: " + err.message)
+      console.error("Add client error:", err);
+      alert("❌ " + (err.response?.data?.message || "Failed to add client"));
     }
-  }
+  };
 
   return (
     <>
-      <button
-        onClick={openModal}
-        className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
+      <button style={styles.addBtn} onClick={openModal}>
         + New Client
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Client</h2>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label className="block mb-1">Name</label>
+        <div style={styles.backdrop} role="dialog" aria-modal="true">
+          <div style={styles.modal}>
+            <h2 style={styles.title}>Add New Client</h2>
+
+            <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+              <div style={styles.field}>
+                <label style={styles.label}>Name</label>
                 <input
+                  autoComplete="off"
                   {...register("name", { required: "Name is required" })}
-                  className="w-full border p-2 rounded"
+                  style={{
+                    ...styles.input,
+                    borderColor: errors.name ? "#dc2626" : "#cbd5e1"
+                  }}
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm">{errors.name.message}</p>
-                )}
+                {errors.name && <p style={styles.error}>{errors.name.message}</p>}
               </div>
 
-              <div>
-                <label className="block mb-1">Contact</label>
+              <div style={styles.field}>
+                <label style={styles.label}>Contact</label>
                 <input
-                  {...register("contact", { required: "Contact is required" })}
-                  className="w-full border p-2 rounded"
+                  autoComplete="off"
+                  {...register("contact", {
+                    required: "Contact is required",
+                    pattern: {
+                      value: /^(\+?\d{1,4}[\s-]?)?(\(?\d{3}\)?[\s-]?)?\d{3,4}[\s-]?\d{4}$|^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Must be a valid phone number or email"
+                    }
+                  })}
+                  style={{
+                    ...styles.input,
+                    borderColor: errors.contact ? "#dc2626" : "#cbd5e1"
+                  }}
                 />
                 {errors.contact && (
-                  <p className="text-red-500 text-sm">{errors.contact.message}</p>
+                  <p style={styles.error}>{errors.contact.message}</p>
                 )}
               </div>
 
-              <div>
-                <label className="block mb-1">Notes</label>
+              <div style={styles.field}>
+                <label style={styles.label}>Notes</label>
                 <textarea
+                  autoComplete="off"
                   {...register("notes")}
-                  className="w-full border p-2 rounded"
+                  style={styles.textarea}
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
+              <div style={styles.actions}>
+                <button type="button" onClick={closeModal} style={styles.cancelBtn}>
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  style={styles.submitBtn}
                 >
                   {isSubmitting ? "Saving..." : "Save"}
                 </button>
@@ -102,5 +100,95 @@ export default function NewClientModal({ onClientAdded }) {
         </div>
       )}
     </>
-  )
+  );
 }
+
+const styles = {
+  addBtn: {
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    padding: "0.5rem 1rem",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "600",
+    marginBottom: "1rem"
+  },
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000
+  },
+  modal: {
+    backgroundColor: "#ffffff",
+    color: "#1e293b",
+    borderRadius: "10px",
+    padding: "2rem",
+    width: "100%",
+    maxWidth: "500px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.15)"
+  },
+  title: {
+    fontSize: "1.25rem",
+    fontWeight: "700",
+    marginBottom: "1rem"
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem"
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column"
+  },
+  label: {
+    fontWeight: "500",
+    marginBottom: "0.25rem"
+  },
+  input: {
+    padding: "0.5rem",
+    borderRadius: "6px",
+    border: "1px solid #cbd5e1",
+    fontSize: "0.95rem"
+  },
+  textarea: {
+    padding: "0.5rem",
+    borderRadius: "6px",
+    border: "1px solid #cbd5e1",
+    fontSize: "0.95rem",
+    minHeight: "80px"
+  },
+  error: {
+    color: "#dc2626",
+    fontSize: "0.85rem",
+    marginTop: "0.25rem"
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "0.75rem",
+    marginTop: "1rem"
+  },
+  cancelBtn: {
+    padding: "0.5rem 1rem",
+    backgroundColor: "#e2e8f0",
+    border: "none",
+    borderRadius: "6px",
+    color: "#1e293b",
+    cursor: "pointer"
+  },
+  submitBtn: {
+    padding: "0.5rem 1rem",
+    backgroundColor: "#16a34a",
+    border: "none",
+    borderRadius: "6px",
+    color: "#ffffff",
+    fontWeight: "600",
+    cursor: "pointer"
+  }
+};

@@ -1,6 +1,5 @@
-// src/pages/AdvocateDashboard.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api/axios"; // <-- Custom instance that injects token
 import {
   Briefcase,
   ClipboardCheck,
@@ -29,12 +28,13 @@ export default function AdvocateDashboard() {
       setError(null);
       try {
         const [casesRes, tasksRes] = await Promise.all([
-          axios.get("/api/cases", { withCredentials: true }),
-          axios.get("/api/tasks?createdBy=me", { withCredentials: true }),
+          API.get("/api/cases"),
+          API.get("/api/tasks?createdBy=me"),
         ]);
         setCases(casesRes.data);
         setTasks(tasksRes.data);
-      } catch {
+      } catch (err) {
+        console.error("Failed to load data:", err);
         setError("Failed to load dashboard data.");
       } finally {
         setLoading(false);
@@ -163,7 +163,7 @@ export default function AdvocateDashboard() {
         </div>
       </div>
 
-      {/* Scoped CSS */}
+      {/* Scoped CSS (do not remove or move out) */}
       <style jsx>{`
         .dashboard-container {
           background: #f3f7fc;

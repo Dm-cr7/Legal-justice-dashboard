@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../api/axios";
 import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 

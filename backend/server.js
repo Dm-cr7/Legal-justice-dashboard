@@ -5,34 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import cors from "cors";  // ← import cors
+import cors from "cors";
 
-// 1. Load env vars
-dotenv.config();
-
-// 2. __dirname fix
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 3. Create app
-const app = express();
-
-// 4. CORS: allow both your Render and local development origins
-app.use(cors({
-  // Key Change: `origin` is now an array to allow multiple URLs
-  origin: ["https://legal-dashboard-frontend.onrender.com", "http://localhost:5173"],
-  credentials: true,   // allow cookies/auth headers
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
-}));
-// handle preflight
-app.options("*", cors());
-
-// 5. Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// 6. API routes
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
 import clientRoutes from "./routes/clients.js";
@@ -41,10 +15,40 @@ import reportRoutes from "./routes/reports.js";
 import userRoutes from "./routes/userRoutes.js";
 import { protect } from "./middleware/auth.js";
 
-// === ADDED FOR DEBUGGING ===
-console.log('Mounting authRoutes:', authRoutes);
-// ===========================
+dotenv.config();
 
+// __dirname fix for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+// Serve uploaded documents (if your cases upload to /uploads)
+app.use("/uploads", express.static(path.resolve("uploads")));
+
+// CORS configuration
+const allowedOrigins = [
+  "https://legal-dashboard-frontend.onrender.com",
+  "http://localhost:5173",
+];
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors());
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Mount routes (header-only JWT)
 app.use("/api/auth", authRoutes);
 app.use("/api/cases", protect, caseRoutes);
 app.use("/api/clients", protect, clientRoutes);
@@ -52,36 +56,34 @@ app.use("/api/tasks", protect, taskRoutes);
 app.use("/api/reports", protect, reportRoutes);
 app.use("/api/users", protect, userRoutes);
 
-// 7. Serve React build
+// Serve React frontend
 const clientBuildPath = path.join(__dirname, "..", "frontend", "dist");
 app.use(express.static(clientBuildPath));
-
-// 8. SPA fallback
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
-  res.sendFile(path.join(clientBuildPath, "index.html"), err => {
-    if (err) {
-      console.error("⚠️ Failed to serve index.html:", err);
-      res.status(500).send("Frontend not found");
-    }
-  });
+  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
+  res.sendFile(path.join(clientBuildPath, "index.html"), (err) => {
+    if (err) {
+      console.error("⚠️ Failed to serve index.html:", err);
+      res.status(500).send("Frontend not found");
+    }
+  });
 });
 
-// 9. Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || "Server Error" });
+  console.error("❌ Error:", err.stack || err);
+  res.status(err.status || 500).json({ message: err.message || "Server Error" });
 });
 
-// 10. Connect & start
+// Connect to MongoDB & start server
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("✅ MongoDB connected");
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch(err => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });

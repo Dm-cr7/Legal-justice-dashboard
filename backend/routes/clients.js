@@ -1,114 +1,103 @@
-import express from "express"
-import jwt from "jsonwebtoken"
-import Client from "../models/Client.js"
+import express from "express";
+import Client from "../models/Client.js";
+import { protect } from "../middleware/auth.js";
 
-const router = express.Router()
+const router = express.Router();
 
-// Middleware to get logged-in user ID from token
-function authenticate(req, res, next) {
+/**
+ * GET /api/clients
+ * Get all clients created by the logged-in user
+ */
+router.get("/", protect, async (req, res) => {
   try {
-    const token = req.cookies.token
-    if (!token) return res.status(401).json({ message: "Unauthorized" })
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    req.userId = decoded.userId
-    next()
+    const clients = await Client.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    res.json(clients);
   } catch (err) {
-    res.status(401).json({ message: "Invalid token" })
+    console.error("❌ GET /clients failed:", err);
+    res.status(500).json({ message: "Server error" });
   }
-}
+});
 
-// GET /api/clients - Get all clients for logged-in user
-router.get("/", authenticate, async (req, res) => {
+/**
+ * POST /api/clients
+ * Create a new client
+ */
+router.post("/", protect, async (req, res) => {
   try {
-    const clients = await Client.find({ createdBy: req.userId }).sort({ createdAt: -1 })
-    res.json(clients)
-  } catch (err) {
-    console.error("GET /api/clients failed:", err)
-    res.status(500).json({ message: "Server error" })
-  }
-})
+    const { name, email, phone, notes } = req.body;
 
-// POST /api/clients - Add a new client
-router.post("/", authenticate, async (req, res) => {
-  try {
-    const { name, contact, notes } = req.body
-    if (!name || !contact) {
-      return res.status(400).json({ message: "Name and contact are required" })
+    if (!name?.trim()) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
     const newClient = new Client({
-      name,
-      contact,
-      notes,
-      createdBy: req.userId,
-    })
+      name: name.trim(),
+      email: email?.trim() || "",
+      phone: phone?.trim() || "",
+      notes: notes?.trim() || "",
+      createdBy: req.user._id,
+    });
 
-    await newClient.save()
-    res.status(201).json(newClient)
+    await newClient.save();
+    res.status(201).json(newClient);
   } catch (err) {
-    console.error("POST /api/clients failed:", err)
-    res.status(500).json({ message: "Server error" })
+    console.error("❌ POST /clients failed:", err);
+    res.status(400).json({ message: err.message || "Invalid client data" });
   }
-})
+});
 
-// PUT /api/clients/:id - Update a client
-router.put("/:id", authenticate, async (req, res) => {
+/**
+ * PUT /api/clients/:id
+ * Update an existing client
+ */
+router.put("/:id", protect, async (req, res) => {
   try {
-    const { name, contact, notes } = req.body
+    const { name, email, phone, notes } = req.body;
+
+    const update = {
+      ...(name && { name: name.trim() }),
+      ...(email !== undefined && { email: email.trim() }),
+      ...(phone !== undefined && { phone: phone.trim() }),
+      ...(notes !== undefined && { notes: notes.trim() }),
+    };
 
     const updated = await Client.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.userId },
-      { name, contact, notes },
+      { _id: req.params.id, createdBy: req.user._id },
+      update,
       { new: true }
-    )
+    );
 
-    if (!updated) return res.status(404).json({ message: "Client not found or unauthorized" })
+    if (!updated) {
+      return res.status(404).json({ message: "Client not found or unauthorized" });
+    }
 
-    res.json(updated)
+    res.json(updated);
   } catch (err) {
-    console.error("PUT /api/clients failed:", err)
-    res.status(500).json({ message: "Server error" })
+    console.error("❌ PUT /clients failed:", err);
+    res.status(500).json({ message: "Server error" });
   }
-})
+});
 
-// DELETE /api/clients/:id - Delete a client
-router.delete("/:id", authenticate, async (req, res) => {
+/**
+ * DELETE /api/clients/:id
+ * Delete a client
+ */
+router.delete("/:id", protect, async (req, res) => {
   try {
     const deleted = await Client.findOneAndDelete({
       _id: req.params.id,
-      createdBy: req.userId,
-    })
+      createdBy: req.user._id,
+    });
 
-    if (!deleted) return res.status(404).json({ message: "Client not found or unauthorized" })
+    if (!deleted) {
+      return res.status(404).json({ message: "Client not found or unauthorized" });
+    }
 
-    res.json({ message: "Client deleted" })
+    res.json({ message: "Client deleted successfully" });
   } catch (err) {
-    console.error("DELETE /api/clients failed:", err)
-    res.status(500).json({ message: "Server error" })
+    console.error("❌ DELETE /clients failed:", err);
+    res.status(500).json({ message: "Server error" });
   }
-})
-// DELETE /api/clients/:id - Delete a specific client
-router.delete("/:id", async (req, res) => {
-  try {
-    const token = req.cookies.token
-    if (!token) return res.status(401).json({ message: "Unauthorized" })
+});
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    const userId = decoded.userId
-
-    const client = await Client.findOneAndDelete({
-      _id: req.params.id,
-      createdBy: userId,
-    })
-
-    if (!client) return res.status(404).json({ message: "Client not found" })
-
-    res.json({ message: "Client deleted successfully" })
-  } catch (err) {
-    console.error("DELETE /api/clients/:id failed:", err)
-    res.status(500).json({ message: "Server error" })
-  }
-})
-
-export default router
+export default router;
